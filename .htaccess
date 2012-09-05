@@ -1,0 +1,30 @@
+Options +FollowSymlinks
+RewriteEngine on
+
+RewriteRule ^/$ index.php?p=home [L]
+RewriteRule ^index.html$ index.php?p=home [L]
+RewriteRule ^logout.html$ index.php?logout=1 [L]
+RewriteRule ^beta.html$ index.php?p=beta [L]
+
+#Javascript PHP
+RewriteRule ^js/js.social.(.*)\.js$ js/js.social.$1.php [L]
+
+#Users
+RewriteRule ^user/([0-9]+)/([^/]+)/$ ?p=user.profile&uid=$1 [L]
+RewriteRule ^user/([^/]+)\.html$ ?p=user.$1 [L]
+RewriteRule ^document.html$ ?p=user.documents [L]
+RewriteRule ^document/([0-9]+)\/(.*)\.html$ ?p=document&i=$1 [L]
+RewriteRule ^user/validation/(.*)\/ ?p=user.validation&verif_key=$1 [L] 
+
+#Nav
+RewriteRule ^author/(.*)/([0-9]+)\/ ?p=nav.author&a=$2 [L]
+RewriteRule ^book/(.*)/([0-9]+)\/ ?p=nav.book&b=$2 [L]
+
+#Read
+
+#RewriteRule ^read/(.*)/(.*)/(.*)/([0-9]+)\.html$ ?p=read&uid=$4 [L]
+RewriteRule ^read.html$ ?p=nav.lang [L]
+RewriteRule ^read/([^/]+)\.html$ index.php?p=home [L]
+RewriteRule ^read/([^/]+)/([0-9]+)/([^/]+)\.html$ ?p=nav.author&a=$2 [L]
+RewriteRule ^read/([^/]+)/([^/]+)/([0-9]+)/([^/]+)\.html$ ?p=nav.book&b=$3 [L]
+RewriteRule ^read/(.*)/(.*)/(.*)/([0-9]+)/Chapter-([0-9]+)/Section-([0-9]+)\.html$ ?p=read&chp=$5&ss=$6&bid=$4 [L]

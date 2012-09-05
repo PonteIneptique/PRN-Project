@@ -1,0 +1,477 @@
+// JavaScript Document
+$(document).ready(function(){
+	var extract, extract2;
+	function heightitid(id) { var h = $('.trad-text-'+id).height(); $('.trad-tarea-'+id).height(h); } //Trad div<->textarea
+	function checkempty(sel)//Supprime espace sélection
+	{
+		//Définition RegExp
+		var reg = /^\s+/g;
+		var reg2 = /\s+$/g;
+		
+		//Création donnée objet
+		this.text = sel.text;
+		this.start = sel.start;
+		this.end = sel.end;
+		
+		//Nettoyage
+		if(reg.test(this.text ) == true){ this.start = this.start+1; }
+		if(reg2.test(this.text ) == true){ this.end = this.end -1; }
+	}
+	function getwholeextract(sel, src)//Sel = données de getSelection , src = texte source de la sélection
+	{
+		var before = "<b>";
+		var after = "</b>";
+		
+		var subtostart = src.substring(0,sel.start);
+		
+		//Si on commence après 20
+		var start;
+		var substart;
+		if(sel.start> 20) { start = sel.start - 20; substart = 20; } else { start = 0; substart = sel.start; }
+		
+		//Si on finit après 20
+		var end = src.length;
+		var diff;
+		diff = end - sel.end;//Longueur entre end et la fin du tradtext
+		if(diff > 20) { end = sel.end + 20; diff = 20; } if(diff < 0) { diff = 0; }
+				
+		//Maintenant on coupe
+		cutsrc = src.substring(start, end);
+		//Maintenant on positionne la fin
+		subend = cutsrc.length - diff;
+		
+		//Maintenant on crée 3 sous chaine qu'on va coller ensemble
+		return cutsrc.substring(0, substart) + before + cutsrc.substring(substart,subend) + after + cutsrc.substring(subend, cutsrc.length);
+	}
+	
+	//Pour les langues
+	$('#trad-langs').chosen().change(function() {
+		//On met l'icone de chargement
+		$('#trad-show').html(varload);
+		//On poste
+		$.post(BASEurl+'./ajax/trad.php?text='+$('#textid').val()+'&lage='+$(this).val(), function(data) { $('#trad-show').html(data); ; 
+		$(document).ratyP('.tradnote', 1);});
+	});
+	//On charge au lancement de la page
+	$.getJSON(BASEurl+"./json/json.trad.lang.php?text="+$('#textid').val(), null, function(data) { $("#trad-langs").get(0).length = 0; $("#trad-langs").addItems(data); $("#trad-langs").trigger("liszt:updated"); })
+	
+	//Dialog Manuscrit
+	$( "#tt-new-manuscrit" ).dialog({
+		autoOpen: false,
+		height: 300,
+		width: 500,
+		modal: true
+	});
+	$("#tt-new-manuscrit-submit").click(function() {
+		var val = $("#tt-new-manuscrit-form").validate({
+			showErrors: function(errorMap,errorList) { if(errorList.length) { $('#tt-new-manuscrit-form .tt-error').html(error).show(); } else { $('#tt-new-manuscrit-form .tt-error').hide().html(''); } }
+		});
+		$("#tt-new-manuscrit-form .tt-error-hide").hide();
+		if( $("#tt-new-manuscrit-form").valid()) {
+			$("#tt-new-manuscrit-result").html(varload);
+			//On poste
+			$.post('./ajax/tt.add.manuscrit.php?uid='+$('#textid').val(), $('#tt-new-manuscrit-form').serialize(), function(data) { 
+				$('#tt-new-manuscrit-result').html(data); 
+				if($.closedialog('tt-new-manuscrit') == true)	{$("#dialog-new-var").dialog("open");}
+			}); 
+			//On met à jour les manuscrits
+			$.getJSON(BASEurl+"./json/json.manuscrits.php?uid="+$('#textid').val(), null, function(data) { $("#maninput").get(0).length = 0; $("#maninput").addItems(data); $("#maninput").trigger("liszt:updated"); })
+		}
+	});
+	
+	//Trad Dialog
+	$( "#tradaction" ).click(function() {
+		$( "#tt-new-trad" ).dialog('open');
+	});
+	
+	$( "#tt-new-trad" ).dialog({
+			autoOpen: false,
+				height: 800,
+				width: 860,
+				modal: true
+	});
+		
+	$("#tt-new-trad #autorid").change(function() {
+		if($(this).val() == 0) //Si auteur != me
+		{
+			$("#tt-new-trad-autor").show("slide", { direction: "down" });
+		}
+		else
+		{
+			$("#tt-new-trad-autor").hide("slide", { direction: "top" });
+		}
+	});
+	
+	
+	$('#tt-new-trad .lage').chosen({no_results_text: "Pas de résultat"});
+	
+	$("#tt-new-trad-submit").click(function() {
+		var val = $("#tt-new-trad-form").validate({
+			showErrors: function(errorMap,errorList) { if(errorList.length) { $('#tt-new-trad-form .tt-error').html(error).show(); } else { $('#tt-new-trad-form .tt-error').hide().html(''); } }
+		});
+		$("#tt-new-trad-form .tt-error-hide").hide();
+		if( $("#tt-new-trad-form").valid()) {
+			$("#tt-new-trad-result").html(varload);
+			//On poste
+			$.post('./ajax/tt.add.trad.php?uid='+$('#textid').val(), $('#tt-new-trad-form').serialize(), function(data) { $('#tt-new-trad-result').html(data); $.closedialog('tt-new-trad'); }); 
+		}
+	});
+	//Dialog Note
+	$( "#dialog-new-note" ).dialog({
+			autoOpen: false,
+				height: 800,
+				width: 500,
+				modal: true
+	});
+		//Select de biblio
+		$('#dialog-new-note .biblioselect').chosen({no_results_text: "Pas de résultat"}).change(function(){	$("#dialog-new-note .biblioselect option:selected").each(function () {if($(this).val() == 0) { $("#dialog-new-biblio").dialog("open"); } });
+
+		});
+	
+	
+	
+	//Switch Dialog
+	$( "#transfert-note" ).click(function() {
+			$('#dialog-new-var').dialog("close");
+			$('#dialog-new-note').dialog("open");
+			$.getJSON(BASEurl+"./json/json.biblio.select.php", null, function(data) { $("#dialog-new-note .biblioselect").get(0).length = 0; $("#dialog-new-note .biblioselect").addItems(data); $("#dialog-new-note .biblioselect").trigger("liszt:updated"); });
+	});
+	$( "#transfert-var" ).click(function() {
+			//On transfert les données
+			$('#tt-var-uid').val($('#new-note-uid').val());
+			$('#tt-var-start').val($('#tt-note-start').val());
+			$('#tt-var-end').val($('#tt-note-end').val());
+			//Affichage de l'extrait
+			$('#dialog-new-var-extract').html(extract2);
+			//On met à jour les manuscrits
+			$.getJSON(BASEurl+"./json/json.manuscrits.php?uid="+$('#tt-var-uid').val(), null, function(data) { $("#maninput").get(0).length = 0; $("#maninput").addItems(data); $("#maninput").trigger("liszt:updated"); })
+			//On ferme / ouvre
+			$('#dialog-new-note').dialog("close");
+			$('#dialog-new-var').dialog("open");
+	});
+	
+	//Dialog VAR 
+	$( "#dialog-new-var" ).dialog({
+			autoOpen: false,
+				height: 800,
+				width: 500,
+				modal: true
+	});	
+		//Select de var
+		$('#maninput').chosen({no_results_text: "Pas de résultat"}).change(function()
+		{
+			if($(this).val() == 0)
+			{
+				//$("#dialog-new-var").dialog("close");
+				$("#tt-new-manuscrit").dialog("open");
+			}
+		});
+		$('#dialog-new-var-submit').click(function(){
+			var val = $("#dialog-new-var-form").validate({showErrors: function(errorMap,errorList) { if(errorList.length) { $('.dialog-new-var-error').html(error).show(); } else { $('.dialog-new-var-error').hide().html(''); } }});
+			$("#dialog-new-var-form .dialog-new-var-error").hide();
+			if( $("#dialog-new-var-form").valid()) {
+				$.post('./ajax/tt.submit.php', $('#dialog-new-var-form').serialize(), function(data) { $('#dialog-new-var-result').html(data); $.closedialog('dialog-new-var'); });  
+			}
+		});
+	//Functions de tooltip
+	
+		//Action du double click alis DIALOG NOTE
+		$('#poemarea').mouseup(function(e) {
+			var sel = $(this).getSelection();
+			if((sel) && (sel.start != sel.end)) {
+				//On supprime les espaces
+				var str = new checkempty(sel); 
+				//Ici on chope l'extrait
+				var extemp = '&#8220;...' + getwholeextract(str, $(this).val()) + '...&#8221;';
+				//On supprime les espaces
+				if(extract2 != extemp)
+				{
+					extract2 = extemp;
+				}	
+				//On remplit les données notes : uid = id texte, restes = données de selection
+				$('#new-note-uid').val($('#textid').val());
+				$('#new-note-start').val(str.start);
+				$('#new-note-end').val(str.end);	
+				$('#new-note .form-extract').html(extract2); // On affiche l'extrait
+				//Mise à jour Biblio
+				$.getJSON(BASEurl+"./json/json.biblio.select.php", null, function(data) { $("#new-note .biblioselect").get(0).length = 0; $("#dialog-new-note .biblioselect").addItems(data); $("#dialog-new-note .biblioselect").trigger("liszt:updated"); });
+				//On ouvre le dialog
+				$('#new-note').slideDown();
+			}
+		});
+		
+		//Apparition depuis dialog des notes du dialog d'ajout 
+		$('#tt-add').live('click', function() { // Action au clic sur la barre d'outil			
+			//On remplit les données notes : uid = id texte, restes = données de selection
+			$('#tt-note-uid').val($('#textid').val());
+			//On récupère les id start et end du tt-content
+			$('#tt-note-start').val($('#dialog-text-note .start').val());
+			$('#tt-note-end').val($('#dialog-text-note .end').val());
+			//Mise à jour Biblio
+			$.getJSON(BASEurl+"./json/json.biblio.select.php", null, function(data) { $("#dialog-new-note .biblioselect").get(0).length = 0; $("#dialog-new-note .biblioselect").addItems(data); $("#dialog-new-note .biblioselect").trigger("liszt:updated"); });
+			//Affichage de l'extrait
+			$('#dialog-new-note .comments-extract').html(extract2); 
+			//On ouvre le dialog
+			$('#dialog-new-note').dialog("open");
+		});
+		
+		//Envoi ajout de notes
+		$('#dialog-new-note-submit').click(function(){
+			var val = $("#dialog-new-note-form").validate({showErrors: function(errorMap,errorList) { if(errorList.length) { $('.dialog-new-note-error').html(error).show(); } else { $('.dialog-new-note-error').hide().html(''); } }});
+			$("#dialog-new-note-form .dialog-new-note-error").hide();
+			if( $("#dialog-new-note-form").valid()) {
+				$.post(BASEurl+'./ajax/tt.submit.php', $('#dialog-new-note-form').serializeArray(), function(data) { $('#dialog-new-note-result').html(data); $.closedialog('dialog-new-note'); });  
+			}
+		});
+		
+	//Switch texte normal / texte éditable
+	$('#normalaction').click(function() { 
+		$('#poem').show(); 
+		$('#poemarea').hide();
+	});
+	$('#noteaction').click(function() { 
+		var h = $('#poem').height();
+		$('#poem').toggle(); 
+		$('#poemarea').toggle();
+		$('#poemarea').height(h);
+		//Prévision multilingue
+		var note = "Ajouter note(s)"; 
+		var text = "Retourner au texte annoté";
+		var that = $(this);
+		if(that.button( "option", "label" ) == note) { that.button( "option", "label", text ); } else { that.button( "option", "label", note ); $('#tooltip').hide(); }
+	});
+
+	//Dialog des notes de text
+	$( "#dialog-text-note" ).dialog({
+			autoOpen: false,
+				height: 800,
+				width: 500,
+				modal: true
+	});	
+
+	//Afficher les notes
+	$('#poem .epi-note').click(function(e) {
+		//On récupère l'id part (Appelé idnote...)
+		var idnote = $(this).attr("val");
+		//On met l'icone de charge
+		$('#dialog-text-note').html(varload);
+		//On affiche le tooltip
+		$('#dialog-text-note').dialog('open');
+		//On appelle l'html
+		$.post(BASEurl+'./ajax/tt.note.php?text='+$('#textid').val()+'&part='+idnote, function(data) { 
+			//Chargement des notes
+			$('#dialog-text-note').html(data); 
+			//Mise en place du rate
+			$(document).ratyP('.noterate', 2);
+			//Mise en cache de l'extrait
+			extract2 = $('#dialog-text-note .comments-extract').html(); 
+		});
+		/*
+		//On met l'icone de charge
+		$('#tt-content').html(varload);
+		//On affiche le tooltip [Ancien]
+			//$('#tooltip').show().css({left:e.pageX+15, top:e.pageY+15});
+		//On appelle l'html
+		$.post(BASEurl+'./ajax/tt.note.php?text='+$('#textid').val()+'&part='+idnote, function(data) { $('#tt-content').html(data); });
+		//Pour activer l'option de toolbox
+		$('#tt-content').attr('val', idnote);
+		$('#tt-tools1').show();
+		*/
+	});
+	
+
+	//Add note
+	/*
+	$('.tt-addnote .tt-submit').click(function(){
+		var val = $(".tt-addnote").validate({showErrors: function(errorMap,errorList) { if(errorList.length) { $('.tt-addnote .tt-error').html(error).show(); } else { $('.tt-addnote .tt-error').hide().html(''); } }});
+		$(".tt-addnote .tt-error-hide").hide();
+		if( $(".tt-addnote").valid()) {	$.post('./ajax/tt.submit.php', $('#tt-content .tt-addnote').serialize(), function(data) { $('#tt-content').html(data); $.closedialog('tt-new-trad'); });  }
+	});
+	*/
+	//notes longues :
+	$(".abbrevnote").live('click', function(){
+		var noteid = $(this).attr("val");
+		$(".abbrevnote-"+noteid).fadeOut(function() {
+			$(".notetoshow-"+noteid).fadeIn();
+		});
+	});
+	$(".hidethisnote").live('click', function(){
+		var noteid = $(this).attr("val");
+		$(".notetoshow-"+noteid).fadeOut(function() {
+			$(".abbrevnote-"+noteid).fadeIn();
+		});
+	});
+	
+	//
+	//
+	//Fonctions liées aux traduction
+	//
+	//
+	
+	//Système de sélection avant dialogue de note pour traduction
+	$('#minor .tradtoclick').live('mouseup', function(e) {
+		var sel = $(this).getSelection();
+		var trad = $(this).attr("val");
+		if((sel) && (sel.start != sel.end)) {
+			//On supprime les espaces
+			var str = new checkempty(sel); 
+			var extemp = '&#8220;...' + getwholeextract(str, $(this).val() )+ '...&#8221;';
+			if(extract != extemp)
+			{
+				extract = extemp;
+			}
+			//On remplit les données notes : uid = id texte, restes = données de selection
+			$('#dialog-new-trad-note-extract').html(extract);
+			$('#tt-trad-note-uid').val($('#textid').val());
+			$('#tt-trad-note-start').val(str.start);
+			$('#tt-trad-note-end').val(str.end);
+			$('#tt-trad-note-tradid').val(trad);	
+			
+			//On ouvre le dialog
+			$('#dialog-new-trad-note').dialog("open");
+		}
+	});
+	
+	//Submit du dialog
+	$('#dialog-new-trad-note-submit').click(function(){
+		var val = $("#dialog-new-trad-note-form").validate({showErrors: function(errorMap,errorList) { if(errorList.length) { $('.dialog-new-trad-note-error').html(error).show(); } else { $('.dialog-new-trad-note-error').hide().html(''); } }});
+		$("#dialog-new-trad-note-form .dialog-new-trad-note-error").hide();
+		if( $("#dialog-new-trad-note-form").valid()) {
+			$.post(BASEurl+'./ajax/dialog.add.trad.note.php', $('#dialog-new-trad-note-form').serializeArray(), function(data) { $('#dialog-new-trad-note-result').html(data); $.closedialog('dialog-new-trad-note'); });  
+		}
+	});
+	
+	//Dialog d'ajout de note à traduction
+	$( "#dialog-new-trad-note" ).dialog({
+			autoOpen: false,
+				height: 800,
+				width: 500,
+				modal: true
+	});
+	
+	//Transformation en bouton des switch textarea<->div
+	$( ".tradaction" ).button({
+            icons: {
+                primary: "ui-icon-plus"
+            }
+	});
+	//Switch entre trad et possibilité nouvelle part dans trad
+	$('.tradaction').live('click', function() { 
+		var tradid = $(this).attr("val");
+		$('.trad-text-'+tradid).toggle(); 
+		$('.trad-tarea-'+tradid).toggle();
+		heightitid(tradid);
+		//Prévision multilingue
+		var note = "Commentaire"; 
+		var text = "Traduction";
+		var that = $(this);
+		if(that.button( "option", "label" ) == note) { that.button( "option", "label", text ); } else { that.button( "option", "label", note ); $('#tooltip').hide(); }
+	});
+	
+	//Appel aux commentaires
+	$('.epi-comment').live('click', function() {
+		var partid = $(this).attr("val");
+		//On met l'icone de charge
+		$('#dialog-tradnotes').html(varload);
+		//On affiche le tooltip
+		$('#dialog-tradnotes').dialog('open');
+		//On appelle l'html
+		$.post(BASEurl+'./ajax/dialog.trad.note.php?part='+partid, function(data) { $('#dialog-tradnotes').html(data); extract = $('#dialog-tradnotes .comments-extract').html(); });
+	});
+	
+	//Dialog d'affichage des commentaires	
+	$( "#dialog-tradnotes" ).dialog({
+			autoOpen: false,
+				height: 800,
+				width: 500,
+				modal: true
+	});
+	
+	//Action quand appel de réponse
+	$(".answer").live("click", function() {
+		var that = $(this);
+		var id = that.attr("val"); // L'id du commentaire parent 
+		var to = that.attr("to"); // Le nom de l'auteur du commentaire parent
+		var start = that.attr("start"); // Le nom de l'auteur du commentaire parent
+		var trad = that.attr("trad"); // Le nom de l'auteur du commentaire parent
+		
+		$('#tt-trad-note-tradid').val(trad); //Id de la trad ?
+		$('#tt-trad-note-uid').val($('#textid').val());//On set le texte
+		$('#tt-trad-note-start').val(start);//On a besoin que du start
+				
+		//On ouvre le dialog
+		$('#dialog-new-trad-note-reply').html('<label>Réponse à </label><div class="select"><button class="button-reply">'+to+'</button><input type="hidden" name="reply" value="'+id+'" /></div>');
+		$( "#dialog-new-trad-note-reply .button-reply").button({icons: {primary: "ui-icon-close"}});//On crée le bouton
+		$('#dialog-new-trad-note-extract').html(extract);//On met l'extrait
+		$('#dialog-new-trad-note').dialog("open");
+		$('#dialog-tradnotes').dialog("close");
+		
+	});
+	
+	//Action au clic sur le bouton reply
+	$( "#dialog-new-trad-note-reply .button-reply").live('click', function() {
+		$('#dialog-new-trad-note-reply').html('');
+	});
+
+/*---------------------------------------------------------------------------------*/	
+	//Notation
+	/*
+	//Chargement des notes
+	
+	//Fonction de chargement
+	$.fn.checkvote = function(sel, it)
+	{
+		//It = $_GET[item]
+		$.getJSON(BASEurl+'./json/json.vote.php?t=1&i='+it, function(json) {
+			//json.avg -> Moyenne obtenue
+			sel.val(json.avg);
+			sel.children('option[value='+json.avg+']').attr("selected", "selected");
+		});
+	}
+	//Application de la fonction
+	$('select.note').each(function() {$(this).checkvote($(this), $(this).attr('item'))});
+	//Mise en place du plugin stars
+	$('.trad-rate').stars({
+		inputType: "select",
+		oneVoteOnly:true
+	});
+	*/
+	//Fonction pour obtenir le vote
+	$.fn.checkvote = function(sel, it, table, div)
+	{
+		$.getJSON(BASEurl+'./json/json.vote.php?t='+table+'&i='+it, function(json) {
+			var note = parseInt(json.avg);
+			sel.parents().attr("note", note);
+			sel.raty('start', note).tri(div+'-global');
+		});
+	}
+	//Fonction pour obtenir le vote
+	$.fn.sendvote = function(sel, it, vote, table, div)
+	{
+		$.getJSON(BASEurl+'./json/json.vote.php?t='+table+'&i='+it, {rate: vote}, function(json) {
+			var note = parseInt(json.avg);
+			sel.parents().attr("note", note);
+			sel.raty('start', note).tri(div+'-global');
+		});
+	}
+	//Fonction pour trier ensuite
+	$.fn.tri = function(div) {
+		$(div).children().delay(3000).tsort({attr:'note', order:'desc'});
+		//$('.tradnote-global>div').tsort({order:"desc",attr:"note"});
+	}
+	//Function générale pour raty
+	$.fn.ratyP = function (div, table)
+	{
+		$(div).raty({
+			start:3,
+			click: function(score) {
+				$.fn.sendvote($(this), $(this).attr('item'), score, table, div);
+			}
+		});
+	
+		$(div).each(function() {$(this).checkvote($(this), $(this).attr('item'), table, div)});
+	}
+	$(document).ratyP('.tradnote', 1);
+	//Tri
+	//$('.showtrad-div').delay(3000).tsort({attr:'note'}); -> Tri les div de traduction en fonction de leur attribut note
+});
